@@ -18,13 +18,12 @@ sealed class BottomBarScreen(
     object Browse : BottomBarScreen(
         route = "browse",
         title = "Browse",
-        icon = Icons.Default.List
+        icon = Icons.Default.GridView
     )
 
     object Order : BottomBarScreen(
         route = "order",
         title = "Order",
-        icon = Icons.Default.List
-
+        icon = Icons.Default.List,
     )
 }
