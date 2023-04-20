@@ -1,33 +1,72 @@
 package com.example.buyphotos.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.material.Card
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
+import com.example.buyphotos.database.ShoppingCart
+import com.example.buyphotos.model.ArtPhotoApiStatus
 import com.example.buyphotos.model.ArtViewModel
 
 @Composable
-fun ShoppingCartScreen(viewModel: ArtViewModel) {
+fun ShoppingCartScreen(viewModel: ArtViewModel, navController: NavController) {
+    val artPhotos = viewModel.dbShoppingCart
+    val apiStatus = remember { mutableStateOf(ArtPhotoApiStatus.LOADING) }
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White),
+            .fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "Handlekurv kommer her",
-            fontSize = MaterialTheme.typography.h3.fontSize,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
-            textAlign = TextAlign.Center
-        )
+        ShoppingCartList(navController = navController, viewModel = viewModel)
+    }
+}
+
+@Composable
+fun ShoppingCartList(navController: NavController, viewModel: ArtViewModel) {
+    val artPhotos = viewModel.dbShoppingCart.value
+    for (i in artPhotos!!){
+        println(i.imageTitle)
+    }
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(1),
+        contentPadding = PaddingValues(8.dp)
+    ) {
+        items(artPhotos!!.size) { index ->
+            val artPhoto = artPhotos[index]
+            ShoppingCartPhotoCard(artPhoto)
+            }
+        }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+fun ShoppingCartPhotoCard(artPhoto: ShoppingCart) {
+    Card(
+        modifier = Modifier
+            .padding(4.dp)
+            .fillMaxWidth(),
+        elevation = 4.dp
+    ) {
+        Column {
+            Image(
+                painter = rememberAsyncImagePainter(artPhoto.imageUrl),
+                contentDescription = "Art Photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+            )
+        }
     }
 }

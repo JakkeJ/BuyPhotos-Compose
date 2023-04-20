@@ -134,12 +134,11 @@ fun CustomTextField(onNumberOfPhotosChanged: (Int) -> Unit) {
 }
 
 @Composable
-fun OrderScreen(imageId: Int, viewModel: ArtViewModel) {
+fun OrderScreen(imageId: Int, viewModel: ArtViewModel,navController: NavController) {
     val frame by viewModel.frame.observeAsState("Treramme")
     val imageSize by viewModel.chosenImageSize.observeAsState("Liten")
     val price by viewModel.price.observeAsState()
     val numberOfPhotos = remember { mutableStateOf(1) }
-    val navController = rememberNavController()
 
     val constraints = ConstraintSet {
         val photoComposable = createRefFor("photo_composable")
@@ -149,6 +148,7 @@ fun OrderScreen(imageId: Int, viewModel: ArtViewModel) {
         val priceComposable = createRefFor("price_composable")
         val numberOfPhotosComposable = createRefFor("number_of_photos_composable")
         val subTotalPriceComposable = createRefFor("subtotal_price_composable")
+        val addToBasketButtonComposable = createRefFor("add_to_basket_button_composable")
         constrain(photoComposable) {
             top.linkTo(parent.top, 16.dp)
             start.linkTo(parent.start, 64.dp)
@@ -187,7 +187,11 @@ fun OrderScreen(imageId: Int, viewModel: ArtViewModel) {
             top.linkTo(numberOfPhotosComposable.bottom, 16.dp)
             start.linkTo(priceComposable.start)
             end.linkTo(priceComposable.end)
-
+        }
+        constrain(addToBasketButtonComposable) {
+            top.linkTo(subTotalPriceComposable.bottom, 16.dp)
+            start.linkTo(priceComposable.start)
+            end.linkTo(priceComposable.end)
         }
     }
     val artPhoto = remember { mutableStateOf<ArtPhoto?>(null) }
@@ -321,7 +325,7 @@ fun OrderScreen(imageId: Int, viewModel: ArtViewModel) {
                         // EXCEPTION E PÅ GRUNN AV NAVCONTROLLER NAVIGATEN!
                     },
                     modifier = Modifier
-                        .layoutId("add_to_basket_button")
+                        .layoutId("add_to_basket_button_composable")
                 ) {
                     Text(text = "Legg til i handlekurv")
                 }

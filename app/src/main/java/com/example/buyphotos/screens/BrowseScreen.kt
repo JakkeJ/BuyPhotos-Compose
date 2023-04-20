@@ -1,29 +1,22 @@
 package com.example.buyphotos.screens
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
-import coil.compose.AsyncImagePainter.State.Empty.painter
 import coil.compose.rememberAsyncImagePainter
-import coil.compose.rememberImagePainter
 import com.example.buyphotos.components.ArtPhotoApiStatusView
+import com.example.buyphotos.database.ShoppingCart
 import com.example.buyphotos.model.ArtPhotoApiStatus
 import com.example.buyphotos.model.ArtViewModel
 import com.example.buyphotos.navigation.BottomBarScreen
-import com.example.buyphotos.navigation.BottomNavGraph
 import com.example.buyphotos.network.ArtPhoto
 import com.example.buyphotos.network.ArtPhotoApi
 import kotlinx.coroutines.launch
@@ -86,12 +79,12 @@ fun ArtPhotoGrid(artPhotos: List<ArtPhoto>, navController: NavHostController, vi
     ) {
         items(artPhotos.size) { index ->
             val artPhoto = artPhotos[index]
-            ArtPhotoCard(artPhoto, onClick = {
+            ArtPhotoCard(artPhoto) {
                 viewModel.setPicture(artPhoto)
                 navController.navigate("${BottomBarScreen.Order.route}/${artPhoto.id}") {
                     launchSingleTop = true
                 }
-            })
+            }
         }
     }
 }

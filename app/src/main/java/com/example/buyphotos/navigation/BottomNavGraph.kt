@@ -19,7 +19,7 @@ fun BottomNavGraph(navController: NavHostController, viewModel: ArtViewModel) {
         startDestination = BottomBarScreen.ShoppingCart.route
     ) {
         composable(route = BottomBarScreen.ShoppingCart.route) {
-            ShoppingCartScreen(viewModel = viewModel)
+            ShoppingCartScreen(viewModel = viewModel, navController = navController)
         }
         composable(route = BottomBarScreen.Browse.route) {
             BrowseScreen(viewModel = viewModel, navController)
@@ -33,7 +33,7 @@ fun BottomNavGraph(navController: NavHostController, viewModel: ArtViewModel) {
                 }
             )
         ) {entry ->
-            OrderScreen(imageId = entry.arguments!!.getInt("imageId"), viewModel = viewModel)
+            OrderScreen(imageId = entry.arguments!!.getInt("imageId"), viewModel = viewModel, navController = navController)
         }
     }
 }
