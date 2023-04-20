@@ -12,9 +12,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.buyphotos.model.ArtViewModel
 
 @Composable
-fun ShoppingCartScreen() {
+fun ShoppingCartScreen(viewModel: ArtViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -29,10 +30,4 @@ fun ShoppingCartScreen() {
             textAlign = TextAlign.Center
         )
     }
-}
-
-@Composable
-@Preview
-fun ShoppingCartScreenPreview() {
-    ShoppingCartScreen()
 }

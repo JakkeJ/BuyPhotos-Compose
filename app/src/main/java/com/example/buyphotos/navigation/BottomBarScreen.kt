@@ -12,13 +12,13 @@ sealed class BottomBarScreen(
     object ShoppingCart : BottomBarScreen(
         route = "shopping_cart",
         title = "Shopping Cart",
-        icon = Icons.Default.ShoppingCart
+        icon = Icons.Default.ShoppingCart,
     )
 
     object Browse : BottomBarScreen(
         route = "browse",
         title = "Browse",
-        icon = Icons.Default.GridView
+        icon = Icons.Default.GridView,
     )
 
     object Order : BottomBarScreen(

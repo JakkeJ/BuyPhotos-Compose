@@ -7,9 +7,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.RadioButton
-import androidx.compose.material.Text
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,17 +34,28 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.tv.material3.Border
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.example.buyphotos.database.ShoppingCart
+import com.example.buyphotos.navigation.BottomBarScreen
 
 @Composable
 fun RadioButtons(
     radioTitle: String,
     radioOptions: List<String>,
     viewModel: ArtViewModel,
-    onOptionSelected: (String) -> Unit
+    onOptionSelected: (String) -> Unit,
+    onSelectionChanged: () -> Unit
 ) {
     val defaultOption = radioOptions[0]
     val (selectedOption, setSelectedOption) = rememberSaveable { mutableStateOf(defaultOption) }
@@ -61,6 +72,7 @@ fun RadioButtons(
                         onClick = {
                             onOptionSelected(text)
                             setSelectedOption(text)
+                            onSelectionChanged()
                         }
                     ),
 
@@ -94,10 +106,40 @@ fun getBorderColor(frame: String?): Color {
 }
 
 @Composable
+fun CustomTextField(onNumberOfPhotosChanged: (Int) -> Unit) {
+    var text by remember { mutableStateOf("1") }
+    val focusRequester = remember { FocusRequester() }
+    var hasBeenFocused by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+    OutlinedTextField(
+        value = text,
+        onValueChange = {
+            text = it
+            onNumberOfPhotosChanged(it.toIntOrNull() ?: 1)
+                        },
+        label = { Text("Antall") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+        modifier = Modifier
+            .layoutId("number_of_photos_composable")
+            .focusRequester(focusRequester)
+            .onFocusChanged { focusState ->
+                if (focusState.isFocused && !hasBeenFocused) {
+                    text = ""
+                    hasBeenFocused = true
+                }
+            },
+        textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center)
+    )
+}
+
+@Composable
 fun OrderScreen(imageId: Int, viewModel: ArtViewModel) {
     val frame by viewModel.frame.observeAsState("Treramme")
     val imageSize by viewModel.chosenImageSize.observeAsState("Liten")
     val price by viewModel.price.observeAsState()
+    val numberOfPhotos = remember { mutableStateOf(1) }
+    val navController = rememberNavController()
 
     val constraints = ConstraintSet {
         val photoComposable = createRefFor("photo_composable")
@@ -135,6 +177,18 @@ fun OrderScreen(imageId: Int, viewModel: ArtViewModel) {
             end.linkTo(photoComposable.end)
             width = Dimension.fillToConstraints
         }
+        constrain(numberOfPhotosComposable) {
+            top.linkTo(priceComposable.bottom, 16.dp)
+            start.linkTo(priceComposable.start)
+            end.linkTo(priceComposable.end)
+
+        }
+        constrain(subTotalPriceComposable) {
+            top.linkTo(numberOfPhotosComposable.bottom, 16.dp)
+            start.linkTo(priceComposable.start)
+            end.linkTo(priceComposable.end)
+
+        }
     }
     val artPhoto = remember { mutableStateOf<ArtPhoto?>(null) }
     LaunchedEffect(imageId) {
@@ -161,11 +215,17 @@ fun OrderScreen(imageId: Int, viewModel: ArtViewModel) {
             else -> {
                 Box(modifier = Modifier.layoutId("photo_composable")){
                     val imageModifier = when (imageSize) {
-                        "Liten" -> Modifier.fillMaxSize().aspectRatio(1f)
+                        "Liten" -> Modifier
+                            .fillMaxSize()
+                            .aspectRatio(1f)
                             .scale(0.6f)
-                        "Medium" -> Modifier.fillMaxSize().aspectRatio(1f)
+                        "Medium" -> Modifier
+                            .fillMaxSize()
+                            .aspectRatio(1f)
                             .scale(0.8f)
-                        else -> Modifier.fillMaxSize().aspectRatio(1f)
+                        else -> Modifier
+                            .fillMaxSize()
+                            .aspectRatio(1f)
                     }
                     Image(
                         painter = rememberAsyncImagePainter(photo.url),
@@ -217,7 +277,8 @@ fun OrderScreen(imageId: Int, viewModel: ArtViewModel) {
                             "Rammetype:",
                             radioOptions = listOf("Treramme", "Sølvramme", "Gullramme"),
                             viewModel = viewModel,
-                            onOptionSelected = { viewModel.setFrame(it) }
+                            onOptionSelected = { viewModel.setFrame(it) },
+                            onSelectionChanged = { viewModel.calculatePrice() }
                         )
                     }
                     Spacer(modifier = Modifier.size(size = 40.dp))
@@ -225,7 +286,8 @@ fun OrderScreen(imageId: Int, viewModel: ArtViewModel) {
                         RadioButtons("Bildestørrelse:",
                             radioOptions = listOf("Liten", "Medium", "Stort"),
                             viewModel = viewModel,
-                            onOptionSelected = { viewModel.setImageSize(it) }
+                            onOptionSelected = { viewModel.setImageSize(it) },
+                            onSelectionChanged = { viewModel.calculatePrice() }
                             )
                     }
                 }
@@ -235,6 +297,34 @@ fun OrderScreen(imageId: Int, viewModel: ArtViewModel) {
                         .layoutId("price_composable"),
                     textAlign = TextAlign.Center
                 )
+                CustomTextField{ newValue -> numberOfPhotos.value = newValue}
+                Text(
+                    text = "Totalpris: ${(price?.times(numberOfPhotos.value)).toString()},-",
+                    modifier = Modifier
+                        .layoutId("subtotal_price_composable"),
+                    textAlign = TextAlign.Center
+                )
+                Button(
+                    onClick = {
+                        val shoppingCartItem = ShoppingCart(
+                            imageId = photo.id,
+                            imageUrl = photo.url,
+                            imageTitle = photo.title,
+                            frameType = frame,
+                            imageSize = imageSize,
+                            price = price ?: 0,
+                            amount = numberOfPhotos.value
+                        )
+                        viewModel.addToBasket(shoppingCartItem)
+                        println(shoppingCartItem)
+                        navController.navigate("shopping_cart")
+                        // EXCEPTION E PÅ GRUNN AV NAVCONTROLLER NAVIGATEN!
+                    },
+                    modifier = Modifier
+                        .layoutId("add_to_basket_button")
+                ) {
+                    Text(text = "Legg til i handlekurv")
+                }
             }
         }
     }

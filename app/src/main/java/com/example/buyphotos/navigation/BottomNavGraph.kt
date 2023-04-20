@@ -19,7 +19,7 @@ fun BottomNavGraph(navController: NavHostController, viewModel: ArtViewModel) {
         startDestination = BottomBarScreen.ShoppingCart.route
     ) {
         composable(route = BottomBarScreen.ShoppingCart.route) {
-            ShoppingCartScreen()
+            ShoppingCartScreen(viewModel = viewModel)
         }
         composable(route = BottomBarScreen.Browse.route) {
             BrowseScreen(viewModel = viewModel, navController)

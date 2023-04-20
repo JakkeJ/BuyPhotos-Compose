@@ -3,15 +3,13 @@ package com.example.buyphotos.model
 import androidx.lifecycle.LiveData
 import android.text.Editable
 import androidx.lifecycle.*
-import com.example.buyphotos.network.*
+import com.example.buyphotos.repository.ShoppingCartRepository
 import com.example.buyphotos.database.ShoppingCart
 import com.example.buyphotos.network.ArtAlbum
 import com.example.buyphotos.network.ArtArtist
 import com.example.buyphotos.network.ArtPhoto
 import com.example.buyphotos.repository.ArtPhotoRepository
-import com.example.buyphotos.repository.ShoppingCartRepository
 import kotlinx.coroutines.launch
-
 
 const val BASE_IMAGE_PRICE: Int = 100
 
@@ -89,12 +87,10 @@ class ArtViewModel(
         _totalNumberOfPhotos.value = 0
     }
 
-    fun addToBasket(photo: ShoppingCart){
-        addPhotoToDb(photo)
-    }
-
-    fun addPhotoToDb(photo: ShoppingCart) {
-        if (dbShoppingCart.value!!.isNotEmpty()) {
+    fun addToBasket(photo: ShoppingCart) {
+        println("MOrdi: ${ photo }")
+        if (dbShoppingCart.value?.isNotEmpty() == true) {
+            println(dbShoppingCart.value)
             var foundMatchingItem = false
             for (i in dbShoppingCart.value!!) {
                 if (
@@ -160,7 +156,6 @@ class ArtViewModel(
     }
 
     fun calculatePrice() {
-        val frameAndImageSize = frame.value + chosenImageSize.value
         val framePrice = when (frame.value) {
             "Treramme" -> WOOD_FRAME_PRICE
             "Sølvramme" -> SILVER_FRAME_PRICE
@@ -176,7 +171,6 @@ class ArtViewModel(
 
         _price.value = BASE_IMAGE_PRICE + framePrice + imageSizePrice
         _orderPrice.value = (price.value!!.toInt() * numberOfPhotos.value!!.toInt()).toString()
-        println(_price.value)
     }
 
     fun setFrameAndImageSizeOptions() {
@@ -225,10 +219,12 @@ class ArtViewModel(
     }
 
     fun removePhotoFromDb(photo: ShoppingCart) {
+
         photo.amount -= 1
         var newNumberOfPhotos: Int = totalNumberOfPhotos.value!!
         newNumberOfPhotos -= 1
         _totalNumberOfPhotos.value = newNumberOfPhotos
+
         var newTotalPriceAmount: Int = basketTotalPrice.value!!
         newTotalPriceAmount -= photo.price
         _basketTotalPrice.value = newTotalPriceAmount
