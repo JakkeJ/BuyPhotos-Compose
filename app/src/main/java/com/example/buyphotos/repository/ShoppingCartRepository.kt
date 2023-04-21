@@ -6,7 +6,7 @@ import com.example.buyphotos.database.ShoppingCart
 import com.example.buyphotos.database.ShoppingCartDao
 
 class ShoppingCartRepository(private val shoppingCartDao: ShoppingCartDao) {
-    val allShoppingCartItems: LiveData<List<ShoppingCart>> = shoppingCartDao.getAll().asLiveData()
+    val allShoppingCartItems: List<ShoppingCart> = shoppingCartDao.getAll()
 
     suspend fun insert(shoppingCartItem: ShoppingCart) {
         shoppingCartDao.insert(shoppingCartItem)

@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ShoppingCartDao {
     @Query("SELECT * FROM shopping_cart")
-    fun getAll(): Flow<List<ShoppingCart>>
+    fun getAll(): List<ShoppingCart>
 
     @Query("DELETE FROM shopping_cart")
     suspend fun emptyShoppingCart()

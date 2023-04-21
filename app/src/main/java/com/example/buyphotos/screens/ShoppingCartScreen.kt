@@ -2,11 +2,14 @@ package com.example.buyphotos.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.Card
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -34,15 +37,14 @@ fun ShoppingCartScreen(viewModel: ArtViewModel, navController: NavController) {
 
 @Composable
 fun ShoppingCartList(navController: NavController, viewModel: ArtViewModel) {
-    val artPhotos = viewModel.dbShoppingCart.value
-    for (i in artPhotos!!){
+    val artPhotos = viewModel.dbShoppingCartFlow
+    for (i in artPhotos.value){
         println(i.imageTitle)
     }
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(1),
+    LazyColumn(
         contentPadding = PaddingValues(8.dp)
     ) {
-        items(artPhotos!!.size) { index ->
+        items(artPhotos.value.size) { index ->
             val artPhoto = artPhotos[index]
             ShoppingCartPhotoCard(artPhoto)
             }

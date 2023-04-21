@@ -10,6 +10,9 @@ import com.example.buyphotos.network.ArtArtist
 import com.example.buyphotos.network.ArtPhoto
 import com.example.buyphotos.repository.ArtPhotoRepository
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.toMutableStateList
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 const val BASE_IMAGE_PRICE: Int = 100
 
@@ -28,7 +31,11 @@ class ArtViewModel(
     private val artPhotoRepository: ArtPhotoRepository
 ) : ViewModel() {
 
-    val dbShoppingCart: LiveData<List<ShoppingCart>> = shoppingCartRepository.allShoppingCartItems
+    val dbShoppingCart = (shoppingCartRepository.allShoppingCartItems).toMutableStateList()
+
+    private val _dbShoppingCartFlow = MutableStateFlow(dbShoppingCart)
+
+    val dbShoppingCartFlow: StateFlow<List<ShoppingCart>> get() = _dbShoppingCartFlow
 
     private val _status = MutableLiveData<ArtPhotoApiStatus>()
     val status: LiveData<ArtPhotoApiStatus> = _status
@@ -76,6 +83,8 @@ class ArtViewModel(
     val basketTotalPrice: LiveData<Int> = _basketTotalPrice
 
 
+
+
     init{
         getArtContent()
         setFrameAndImageSizeOptions()
@@ -89,10 +98,10 @@ class ArtViewModel(
 
     fun addToBasket(photo: ShoppingCart) {
         println("MOrdi: ${ photo }")
-        if (dbShoppingCart.value?.isNotEmpty() == true) {
-            println(dbShoppingCart.value)
+        if (dbShoppingCart.isNotEmpty()) {
+            println(dbShoppingCart)
             var foundMatchingItem = false
-            for (i in dbShoppingCart.value!!) {
+            for (i in dbShoppingCart) {
                 if (
                     i.imageId == photo.imageId &&
                     i.frameType == photo.frameType &&
@@ -241,19 +250,17 @@ class ArtViewModel(
     }
 
     fun getNewPrice() {
-        if (dbShoppingCart.value != null) {
-            var newPrice: Int = 0
-            var newAmount: Int = 0
+        var newPrice: Int = 0
+        var newAmount: Int = 0
 
-            for (photos in dbShoppingCart.value!!) {
-                newPrice += (photos.amount * photos.price)
-                newAmount += photos.amount
-            }
-            _basketTotalPrice.value = newPrice
-            _totalNumberOfPhotos.value = newAmount
-            _frame.value = "Treramme"
-            _chosenImageSize.value = "Liten"
+        for (photos in dbShoppingCart) {
+            newPrice += (photos.amount * photos.price)
+            newAmount += photos.amount
         }
+        _basketTotalPrice.value = newPrice
+        _totalNumberOfPhotos.value = newAmount
+        _frame.value = "Treramme"
+        _chosenImageSize.value = "Liten"
     }
 }
 
