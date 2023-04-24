@@ -4,9 +4,10 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
 import com.example.buyphotos.database.ShoppingCart
 import com.example.buyphotos.database.ShoppingCartDao
+import kotlinx.coroutines.flow.Flow
 
 class ShoppingCartRepository(private val shoppingCartDao: ShoppingCartDao) {
-    val allShoppingCartItems: List<ShoppingCart> = shoppingCartDao.getAll()
+    val allShoppingCartItems: Flow<List<ShoppingCart>> = shoppingCartDao.getAll()
 
     suspend fun insert(shoppingCartItem: ShoppingCart) {
         shoppingCartDao.insert(shoppingCartItem)

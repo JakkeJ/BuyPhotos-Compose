@@ -1,7 +1,9 @@
 package com.example.buyphotos.model
 
+import android.content.Intent
 import androidx.lifecycle.LiveData
 import android.text.Editable
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.*
 import com.example.buyphotos.repository.ShoppingCartRepository
 import com.example.buyphotos.database.ShoppingCart
@@ -11,8 +13,15 @@ import com.example.buyphotos.network.ArtPhoto
 import com.example.buyphotos.repository.ArtPhotoRepository
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.toMutableStateList
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.core.content.ContextCompat.startActivity
+import com.example.buyphotos.MainActivity
+import com.example.buyphotos.R
+import com.example.buyphotos.network.FramedPhoto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 
 const val BASE_IMAGE_PRICE: Int = 100
 
@@ -31,11 +40,8 @@ class ArtViewModel(
     private val artPhotoRepository: ArtPhotoRepository
 ) : ViewModel() {
 
-    val dbShoppingCart = (shoppingCartRepository.allShoppingCartItems).toMutableStateList()
-
-    private val _dbShoppingCartFlow = MutableStateFlow(dbShoppingCart)
-
-    val dbShoppingCartFlow: StateFlow<List<ShoppingCart>> get() = _dbShoppingCartFlow
+    private val _dbShoppingCart = MutableStateFlow<List<ShoppingCart>>(emptyList())
+    val dbShoppingCart: StateFlow<List<ShoppingCart>> = _dbShoppingCart
 
     private val _status = MutableLiveData<ArtPhotoApiStatus>()
     val status: LiveData<ArtPhotoApiStatus> = _status
@@ -49,59 +55,82 @@ class ArtViewModel(
     private val _albums = MutableLiveData<List<ArtAlbum>>()
     val albums: LiveData<List<ArtAlbum>> = _albums
 
-    private val _frame = MutableLiveData<String>()
-    val frame: LiveData<String> = _frame
+    private val _frame = MutableStateFlow("Treramme")
+    val frame: StateFlow<String> = _frame
 
-    private val _chosenImageSize = MutableLiveData<String>()
-    val chosenImageSize: LiveData<String> = _chosenImageSize
+    private val _chosenImageSize = MutableStateFlow("Liten")
+    val chosenImageSize: StateFlow<String> = _chosenImageSize
 
-    private val _price = MutableLiveData<Int>()
-    val price: LiveData<Int> = _price
+    private val _price = MutableStateFlow<Int>(0)
+    val price: StateFlow<Int> = _price
 
-    private val _orderPrice = MutableLiveData<String>()
-    val orderPrice: LiveData<String> = _orderPrice
+    private val _orderPrice = MutableStateFlow<String>("")
+    val orderPrice: StateFlow<String> = _orderPrice
 
     private val _picture = MutableLiveData<ArtPhoto>()
     val picture: LiveData<ArtPhoto> = _picture
 
-    private val _totalNumberOfPhotos = MutableLiveData<Int>()
-    val totalNumberOfPhotos: LiveData<Int> = _totalNumberOfPhotos
+    private val _totalNumberOfPhotos = MutableStateFlow<Int>(0)
+    val totalNumberOfPhotos: StateFlow<Int> = _totalNumberOfPhotos
 
-    private val _numberOfPhotos = MutableLiveData<Int>()
-    val numberOfPhotos: LiveData<Int> = _numberOfPhotos
+    private val _numberOfPhotos = MutableStateFlow<Int>(0)
+    val numberOfPhotos: StateFlow<Int> = _numberOfPhotos
 
-    private val _artistName = MutableLiveData<String>()
-    val artistName: LiveData<String> = _artistName
+    private val _artistName = MutableStateFlow<String>("")
+    val artistName: StateFlow<String> = _artistName
 
-    private val _artistEmail = MutableLiveData<String>()
-    val artistEmail: LiveData<String> = _artistEmail
+    private val _artistEmail = MutableStateFlow<String>("")
+    val artistEmail: StateFlow<String> = _artistEmail
 
-    private val _basketSize = MutableLiveData<Int>()
-    val basketSize: LiveData<Int> = _basketSize
+    private val _basketSize = MutableStateFlow(0)
+    val basketSize: StateFlow<Int> = _basketSize
 
-    private val _basketTotalPrice = MutableLiveData<Int>()
-    val basketTotalPrice: LiveData<Int> = _basketTotalPrice
-
-
-
+    private val _basketTotalPrice = MutableStateFlow(0)
+    val basketTotalPrice: StateFlow<Int> = _basketTotalPrice
 
     init{
+        fetchShoppingCartItems()
         getArtContent()
         setFrameAndImageSizeOptions()
         resetViewModel()
     }
 
-    fun resetViewModel() {
-        _basketTotalPrice.value = 0
-        _totalNumberOfPhotos.value = 0
+    private fun fetchShoppingCartItems() {
+        viewModelScope.launch {
+            shoppingCartRepository.allShoppingCartItems.collect { shoppingCartItems ->
+                _dbShoppingCart.value = shoppingCartItems
+                for (i in shoppingCartItems){
+                    println(i.imageId)
+                }
+            }
+        }
     }
 
-    fun addToBasket(photo: ShoppingCart) {
-        println("MOrdi: ${ photo }")
-        if (dbShoppingCart.isNotEmpty()) {
-            println(dbShoppingCart)
+    fun resetViewModel() {
+        var price = 0
+        var amount = 0
+        for (i in _dbShoppingCart.value){
+            price += i.amount * i.price
+            amount += i.amount
+        }
+        _basketTotalPrice.value = price
+        _totalNumberOfPhotos.value = amount
+    }
+
+    fun getBorderColor(frame: String?): Color {
+        val brown = Color(150, 75, 0)
+        return when (frame) {
+            "Treramme" -> brown// Change this to the desired color for the Treramme option
+            "Sølvramme" -> Color.Gray // Change this to the desired color for the Sølvramme option
+            "Gullramme" -> Color.Yellow // Change this to the desired color for the Gullramme option
+            else -> Color.Black
+        }
+    }
+
+    fun addToBasket(photo: ShoppingCart, increase: Boolean) {
+        if (dbShoppingCart.value.isNotEmpty()) {
             var foundMatchingItem = false
-            for (i in dbShoppingCart) {
+            for (i in dbShoppingCart.value) {
                 if (
                     i.imageId == photo.imageId &&
                     i.frameType == photo.frameType &&
@@ -109,11 +138,15 @@ class ArtViewModel(
                 ) {
                     foundMatchingItem = true
                     val currentPhoto = i.copy()
-                    currentPhoto.amount += 1
-                    var newNumberOfPhotos: Int = totalNumberOfPhotos.value!!
+                    if (increase){
+                        currentPhoto.amount += 1
+                    } else {
+                        currentPhoto.amount += photo.amount
+                    }
+                    var newNumberOfPhotos: Int = totalNumberOfPhotos.value
                     newNumberOfPhotos += 1
                     _totalNumberOfPhotos.value = newNumberOfPhotos
-                    var newTotalPriceAmount: Int = basketTotalPrice.value!!
+                    var newTotalPriceAmount: Int = basketTotalPrice.value
                     newTotalPriceAmount += photo.price
                     _basketTotalPrice.value = newTotalPriceAmount
                     viewModelScope.launch {
@@ -218,6 +251,8 @@ class ArtViewModel(
     private fun insertShoppingCartItem(shoppingCartItem: ShoppingCart) {
         viewModelScope.launch {
             shoppingCartRepository.insert(shoppingCartItem)
+            _totalNumberOfPhotos.value += shoppingCartItem.amount
+            _basketTotalPrice.value = basketTotalPrice.value + (shoppingCartItem.price * shoppingCartItem.amount)
         }
     }
 
@@ -228,32 +263,39 @@ class ArtViewModel(
     }
 
     fun removePhotoFromDb(photo: ShoppingCart) {
-
-        photo.amount -= 1
+        val currentPhoto = photo.copy()
+        currentPhoto.amount -= 1
         var newNumberOfPhotos: Int = totalNumberOfPhotos.value!!
         newNumberOfPhotos -= 1
         _totalNumberOfPhotos.value = newNumberOfPhotos
+        println(newNumberOfPhotos)
+        println(_totalNumberOfPhotos.value)
+        println(totalNumberOfPhotos.value)
 
         var newTotalPriceAmount: Int = basketTotalPrice.value!!
-        newTotalPriceAmount -= photo.price
+        newTotalPriceAmount -= currentPhoto.price
         _basketTotalPrice.value = newTotalPriceAmount
 
-        if (photo.amount != 0) {
+        if (currentPhoto.amount != 0) {
             viewModelScope.launch {
-                shoppingCartRepository.update(photo)
+                shoppingCartRepository.update(currentPhoto)
             }
         } else {
             viewModelScope.launch {
-                shoppingCartRepository.remove(photo)
+                shoppingCartRepository.remove(currentPhoto)
             }
         }
+    }
+
+    suspend fun getShoppingCartItems(): List<ShoppingCart> {
+        return dbShoppingCart.first()
     }
 
     fun getNewPrice() {
         var newPrice: Int = 0
         var newAmount: Int = 0
 
-        for (photos in dbShoppingCart) {
+        for (photos in dbShoppingCart.value) {
             newPrice += (photos.amount * photos.price)
             newAmount += photos.amount
         }
@@ -263,6 +305,8 @@ class ArtViewModel(
         _chosenImageSize.value = "Liten"
     }
 }
+
+
 
 class ArtViewModelFactory(
     private val shoppingCartRepository: ShoppingCartRepository,

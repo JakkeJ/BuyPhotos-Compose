@@ -95,15 +95,7 @@ fun RadioButtons(
     }
 }
 
-fun getBorderColor(frame: String?): Color {
-    val brown = Color(150, 75, 0)
-    return when (frame) {
-        "Treramme" -> brown// Change this to the desired color for the Treramme option
-        "Sølvramme" -> Color.Gray // Change this to the desired color for the Sølvramme option
-        "Gullramme" -> Color.Yellow // Change this to the desired color for the Gullramme option
-        else -> Color.Black
-    }
-}
+
 
 @Composable
 fun CustomTextField(onNumberOfPhotosChanged: (Int) -> Unit) {
@@ -135,9 +127,9 @@ fun CustomTextField(onNumberOfPhotosChanged: (Int) -> Unit) {
 
 @Composable
 fun OrderScreen(imageId: Int, viewModel: ArtViewModel,navController: NavController) {
-    val frame by viewModel.frame.observeAsState("Treramme")
-    val imageSize by viewModel.chosenImageSize.observeAsState("Liten")
-    val price by viewModel.price.observeAsState()
+    val frame by viewModel.frame.collectAsState()
+    val imageSize by viewModel.chosenImageSize.collectAsState()
+    val price by viewModel.price.collectAsState()
     val numberOfPhotos = remember { mutableStateOf(1) }
 
     val constraints = ConstraintSet {
@@ -244,7 +236,7 @@ fun OrderScreen(imageId: Int, viewModel: ArtViewModel,navController: NavControll
                             .padding(2.dp)
                             .border(
                                 10.dp,
-                                getBorderColor(frame)
+                                viewModel.getBorderColor(frame)
                             )
                             .padding(10.dp)
                             .border(
@@ -310,6 +302,7 @@ fun OrderScreen(imageId: Int, viewModel: ArtViewModel,navController: NavControll
                 )
                 Button(
                     onClick = {
+                        println(numberOfPhotos.value)
                         val shoppingCartItem = ShoppingCart(
                             imageId = photo.id,
                             imageUrl = photo.url,
@@ -319,10 +312,9 @@ fun OrderScreen(imageId: Int, viewModel: ArtViewModel,navController: NavControll
                             price = price ?: 0,
                             amount = numberOfPhotos.value
                         )
-                        viewModel.addToBasket(shoppingCartItem)
-                        println(shoppingCartItem)
+                        viewModel.addToBasket(shoppingCartItem, false)
+                        println(shoppingCartItem.amount)
                         navController.navigate("shopping_cart")
-                        // EXCEPTION E PÅ GRUNN AV NAVCONTROLLER NAVIGATEN!
                     },
                     modifier = Modifier
                         .layoutId("add_to_basket_button_composable")

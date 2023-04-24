@@ -1,3 +1,37 @@
 <resources>
     <string name="app_name">Buy Photos</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="frametype">Rammetype:</string>
+    <string name="woodframe">Treramme</string>
+    <string name="silverframe">Sølvramme</string>
+    <string name="goldframe">Gullramme</string>
+    <string name="imagesize">Bildestørrelse:</string>
+    <string name="small">Liten</string>
+    <string name="medium">Medium</string>
+    <string name="big">Stort</string>
+    <string name="addToCart">Legg i handlekurv</string>
+    <string name="previous">Forrige</string>
+    <string name="priceSum">Pris: %s,-</string>
+    <string name="subTotal">Subtotal: %s,-</string>
+    <string name="title">%s</string>
+    <string name="shopping_cart">Shopping Cart</string>
+    <string name="gallery">Gallery</string>
+    <string name="ShoppingcartHeader">Bestill bilder</string>
+    <string name="BrowseStoreHeader">Velg bilde</string>
+    <string name="FragmentOrderHeader">Bildetype</string>
+    <string name="FindPhoto">Velg bilde</string>
+    <string name="totalPriceSum">Totalpris: %s,-</string>
+    <string name="photoAmount">Antall valgte bilder: %s</string>
+    <string name="shoppingCart">Handlekurv:</string>
+    <string name="sendOrder">Send bestilling</string>
+    <string name="confirmSendOrder">Vil du sende ordren? Handlekurven vil tømmes om du trykker ja</string>
+    <string name="size">Bildestørrelse: %s</string>
+    <string name="frame">Rammetype: %s</string>
+    <string name="orderHeader">Din bestilling:\n\n</string>
+    <string name="orderSubject">Bildebestilling</string>
+    <string name="orderInfo">Bildenavn: %s\nBilde-ID: %s\nBildestørrelse: %s\nBilderamme: %s\nPris: %s,- \nAntall: %s\nSubtotal: %s,-\n\n</string>
+    <string name="orderEnd">Antall bilder: %s\nTotal pris: %s,-\nTakk for at du støtter lokale bedrifter.</string>
+    <string name="emptyShoppingCart">Tøm handlekurv</string>
+    <string name="accept">Ja</string>
+    <string name="decline">Nei</string>
 </resources>

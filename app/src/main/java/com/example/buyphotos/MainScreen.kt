@@ -1,10 +1,7 @@
 package com.example.buyphotos
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,8 +24,11 @@ fun MainScreen(viewModel: ArtViewModel) {
     Scaffold(
         topBar = { topAppBar() },
         bottomBar = { BottomBar(navController = navController) }
-    ) {
-        BottomNavGraph(navController = navController, viewModel = viewModel)
+    )
+    { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding)) {
+            BottomNavGraph(navController = navController, viewModel = viewModel)
+        }
     }
 }
 
