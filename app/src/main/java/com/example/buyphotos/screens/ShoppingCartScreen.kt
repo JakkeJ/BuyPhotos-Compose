@@ -40,7 +40,10 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ShoppingCartScreen(viewModel: ArtViewModel, navController: NavController) {
-    Column {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
         Text(
             text = "Handlekurv",
             modifier = Modifier
@@ -52,6 +55,19 @@ fun ShoppingCartScreen(viewModel: ArtViewModel, navController: NavController) {
             modifier = Modifier
                 .weight(1f)
         )
+        Row(
+            modifier = Modifier
+                .padding(8.dp)
+                .align(Alignment.CenterHorizontally)
+        ){
+            Text(
+                text = "Antall valgte bilder: ${viewModel.totalNumberOfPhotos.collectAsState().value}"
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = "Totalpris: ${viewModel.basketTotalPrice.collectAsState().value},-"
+            )
+        }
         Row(
             modifier = Modifier
                 .padding(8.dp)
@@ -110,12 +126,16 @@ fun ShoppingCartList(navController: NavController, viewModel: ArtViewModel, modi
 
 @Composable
 fun ShoppingCartPhotoCard(artPhoto: ShoppingCart, viewModel: ArtViewModel) {
+    var subtotal by remember { mutableStateOf(artPhoto.amount * artPhoto.price) }
+    var amount by remember { mutableStateOf(artPhoto.amount) }
     val constraints = ConstraintSet {
         val photoComposable = createRefFor("photo_composable")
         val titleComposable = createRefFor("title_composable")
         val frameTypeComposable = createRefFor("frame_type_composable")
         val imageSizeComposable = createRefFor("image_size_composable")
         val removeImageButtonComposable = createRefFor("remove_image_button_composable")
+        val pricePerPhotoComposable = createRefFor("price_per_photo_composable")
+        val subTotalPriceComposable = createRefFor("sub_total_price_composable")
         val addImageButtonComposable = createRefFor("add_image_button_composable")
         val numberOfImagesComposable = createRefFor("number_of_images_composable")
         constrain(photoComposable) {
@@ -142,17 +162,25 @@ fun ShoppingCartPhotoCard(artPhoto: ShoppingCart, viewModel: ArtViewModel) {
         }
         constrain(removeImageButtonComposable) {
             end.linkTo(numberOfImagesComposable.start, 8.dp)
-            bottom.linkTo(parent.bottom, 0.dp)
-            top.linkTo(parent.top, 0.dp)
+            bottom.linkTo(subTotalPriceComposable.top, 0.dp)
+            top.linkTo(pricePerPhotoComposable.bottom, 0.dp)
         }
         constrain(numberOfImagesComposable) {
             end.linkTo(addImageButtonComposable.start, 8.dp)
-            top.linkTo(parent.top, 0.dp)
-            bottom.linkTo(parent.bottom, 0.dp)
+            bottom.linkTo(subTotalPriceComposable.top, 0.dp)
+            top.linkTo(pricePerPhotoComposable.bottom, 0.dp)
         }
         constrain(addImageButtonComposable) {
             end.linkTo(parent.end, 8.dp)
+            bottom.linkTo(subTotalPriceComposable.top, 0.dp)
+            top.linkTo(pricePerPhotoComposable.bottom, 0.dp)
+        }
+        constrain(pricePerPhotoComposable) {
+            end.linkTo(parent.end, 8.dp)
             top.linkTo(parent.top, 0.dp)
+        }
+        constrain(subTotalPriceComposable) {
+            end.linkTo(parent.end, 8.dp)
             bottom.linkTo(parent.bottom, 0.dp)
         }
     }
@@ -212,7 +240,11 @@ fun ShoppingCartPhotoCard(artPhoto: ShoppingCart, viewModel: ArtViewModel) {
                 fontSize = 11.sp
             )
             Button(
-                onClick = { viewModel.removePhotoFromDb(artPhoto) },
+                onClick = {
+                    viewModel.decreasePhotoAmount(artPhoto)
+                    subtotal = artPhoto.amount * artPhoto.price
+                    amount = artPhoto.amount
+                          },
                 modifier = Modifier
                     .layoutId("remove_image_button_composable")
                     .height(50.dp)
@@ -224,7 +256,7 @@ fun ShoppingCartPhotoCard(artPhoto: ShoppingCart, viewModel: ArtViewModel) {
                     )
                 }
             Text(
-                text = artPhoto.amount.toString(),
+                text = amount.toString(),
                 modifier = Modifier
                     .layoutId("number_of_images_composable")
                     .width(20.dp),
@@ -232,7 +264,11 @@ fun ShoppingCartPhotoCard(artPhoto: ShoppingCart, viewModel: ArtViewModel) {
                 textAlign = TextAlign.Center
             )
             Button(
-                onClick = { viewModel.addToBasket(artPhoto, true)},
+                onClick = {
+                    viewModel.increasePhotoAmount(artPhoto)
+                    subtotal = artPhoto.amount * artPhoto.price
+                    amount = artPhoto.amount
+                          },
                 modifier = Modifier
                     .layoutId("add_image_button_composable")
                     .height(50.dp)
@@ -243,6 +279,20 @@ fun ShoppingCartPhotoCard(artPhoto: ShoppingCart, viewModel: ArtViewModel) {
                     fontSize = 24.sp
                 )
             }
+            Text(
+                text = "Sum per bilde: ${artPhoto.price},-",
+                modifier = Modifier
+                    .layoutId("price_per_photo_composable"),
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "Subtotal: ${subtotal},-",
+                modifier = Modifier
+                    .layoutId("sub_total_price_composable"),
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

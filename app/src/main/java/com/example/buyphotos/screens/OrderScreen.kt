@@ -312,7 +312,7 @@ fun OrderScreen(imageId: Int, viewModel: ArtViewModel,navController: NavControll
                             price = price ?: 0,
                             amount = numberOfPhotos.value
                         )
-                        viewModel.addToBasket(shoppingCartItem, false)
+                        viewModel.addToBasket(shoppingCartItem)
                         println(shoppingCartItem.amount)
                         navController.navigate("shopping_cart")
                     },

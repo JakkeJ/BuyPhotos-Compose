@@ -82,52 +82,48 @@ class ArtViewModel(
     private val _artistEmail = MutableStateFlow<String>("")
     val artistEmail: StateFlow<String> = _artistEmail
 
-    private val _basketSize = MutableStateFlow(0)
-    val basketSize: StateFlow<Int> = _basketSize
-
     private val _basketTotalPrice = MutableStateFlow(0)
     val basketTotalPrice: StateFlow<Int> = _basketTotalPrice
 
     init{
-        fetchShoppingCartItems()
         getArtContent()
         setFrameAndImageSizeOptions()
         resetViewModel()
+        fetchShoppingCartItems()
     }
 
     private fun fetchShoppingCartItems() {
+        var price = 0
+        var amount = 0
         viewModelScope.launch {
             shoppingCartRepository.allShoppingCartItems.collect { shoppingCartItems ->
                 _dbShoppingCart.value = shoppingCartItems
                 for (i in shoppingCartItems){
-                    println(i.imageId)
+                    price += i.price * i.amount
+                    amount += i.amount
                 }
+                _totalNumberOfPhotos.value = amount
+                _basketTotalPrice.value = price
             }
         }
     }
 
     fun resetViewModel() {
-        var price = 0
-        var amount = 0
-        for (i in _dbShoppingCart.value){
-            price += i.amount * i.price
-            amount += i.amount
-        }
-        _basketTotalPrice.value = price
-        _totalNumberOfPhotos.value = amount
+        _basketTotalPrice.value = 0
+        _totalNumberOfPhotos.value = 0
     }
 
     fun getBorderColor(frame: String?): Color {
         val brown = Color(150, 75, 0)
         return when (frame) {
-            "Treramme" -> brown// Change this to the desired color for the Treramme option
-            "Sølvramme" -> Color.Gray // Change this to the desired color for the Sølvramme option
-            "Gullramme" -> Color.Yellow // Change this to the desired color for the Gullramme option
+            "Treramme" -> brown
+            "Sølvramme" -> Color.Gray
+            "Gullramme" -> Color.Yellow
             else -> Color.Black
         }
     }
 
-    fun addToBasket(photo: ShoppingCart, increase: Boolean) {
+    fun addToBasket(photo: ShoppingCart) {
         if (dbShoppingCart.value.isNotEmpty()) {
             var foundMatchingItem = false
             for (i in dbShoppingCart.value) {
@@ -137,29 +133,49 @@ class ArtViewModel(
                     i.imageSize == photo.imageSize
                 ) {
                     foundMatchingItem = true
-                    val currentPhoto = i.copy()
-                    if (increase){
-                        currentPhoto.amount += 1
-                    } else {
-                        currentPhoto.amount += photo.amount
-                    }
+                    i.amount += 1
                     var newNumberOfPhotos: Int = totalNumberOfPhotos.value
                     newNumberOfPhotos += 1
                     _totalNumberOfPhotos.value = newNumberOfPhotos
                     var newTotalPriceAmount: Int = basketTotalPrice.value
                     newTotalPriceAmount += photo.price
                     _basketTotalPrice.value = newTotalPriceAmount
-                    viewModelScope.launch {
-                        shoppingCartRepository.update(currentPhoto)
-                    }
                     break
                 }
             }
-            if (!foundMatchingItem) {
+            if (foundMatchingItem) {
+                viewModelScope.launch {
+                    shoppingCartRepository.update(photo)
+                }
+            } else {
                 insertShoppingCartItem(photo)
             }
         } else {
             insertShoppingCartItem(photo)
+        }
+    }
+
+    fun increasePhotoAmount(photo: ShoppingCart) {
+        photo.amount += 1
+        _totalNumberOfPhotos.value += 1
+        _basketTotalPrice.value += photo.price
+    }
+
+    fun removePhotoFromDb(photo: ShoppingCart) {
+        viewModelScope.launch {
+            shoppingCartRepository.remove(photo)
+        }
+    }
+
+    fun decreasePhotoAmount(photo: ShoppingCart){
+        if (photo.amount > 1) {
+            photo.amount -= 1
+            _totalNumberOfPhotos.value -= 1
+            _basketTotalPrice.value -= photo.price
+        } else {
+            _totalNumberOfPhotos.value -= 1
+            _basketTotalPrice.value -= photo.price
+            removePhotoFromDb(photo)
         }
     }
 
@@ -187,16 +203,6 @@ class ArtViewModel(
         calculatePrice()
     }
 
-    fun setNumberOfPhotos(numberChoice: Editable?) {
-        if (numberChoice.toString().toIntOrNull() == null){
-            _numberOfPhotos.value = 1
-            calculatePrice()
-        } else {
-            _numberOfPhotos.value = numberChoice.toString().toInt()
-            calculatePrice()
-        }
-    }
-
     fun calculatePrice() {
         val framePrice = when (frame.value) {
             "Treramme" -> WOOD_FRAME_PRICE
@@ -212,7 +218,7 @@ class ArtViewModel(
         }
 
         _price.value = BASE_IMAGE_PRICE + framePrice + imageSizePrice
-        _orderPrice.value = (price.value!!.toInt() * numberOfPhotos.value!!.toInt()).toString()
+        _orderPrice.value = (price.value.toInt() * numberOfPhotos.value.toInt()).toString()
     }
 
     fun setFrameAndImageSizeOptions() {
@@ -260,49 +266,11 @@ class ArtViewModel(
         viewModelScope.launch {
             shoppingCartRepository.emptyShoppingCart()
         }
-    }
-
-    fun removePhotoFromDb(photo: ShoppingCart) {
-        val currentPhoto = photo.copy()
-        currentPhoto.amount -= 1
-        var newNumberOfPhotos: Int = totalNumberOfPhotos.value!!
-        newNumberOfPhotos -= 1
-        _totalNumberOfPhotos.value = newNumberOfPhotos
-        println(newNumberOfPhotos)
-        println(_totalNumberOfPhotos.value)
-        println(totalNumberOfPhotos.value)
-
-        var newTotalPriceAmount: Int = basketTotalPrice.value!!
-        newTotalPriceAmount -= currentPhoto.price
-        _basketTotalPrice.value = newTotalPriceAmount
-
-        if (currentPhoto.amount != 0) {
-            viewModelScope.launch {
-                shoppingCartRepository.update(currentPhoto)
-            }
-        } else {
-            viewModelScope.launch {
-                shoppingCartRepository.remove(currentPhoto)
-            }
-        }
+        resetViewModel()
     }
 
     suspend fun getShoppingCartItems(): List<ShoppingCart> {
         return dbShoppingCart.first()
-    }
-
-    fun getNewPrice() {
-        var newPrice: Int = 0
-        var newAmount: Int = 0
-
-        for (photos in dbShoppingCart.value) {
-            newPrice += (photos.amount * photos.price)
-            newAmount += photos.amount
-        }
-        _basketTotalPrice.value = newPrice
-        _totalNumberOfPhotos.value = newAmount
-        _frame.value = "Treramme"
-        _chosenImageSize.value = "Liten"
     }
 }
 
