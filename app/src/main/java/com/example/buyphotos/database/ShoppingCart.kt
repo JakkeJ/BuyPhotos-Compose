@@ -13,7 +13,7 @@ data class ShoppingCart(
     @NonNull @ColumnInfo(name = "image_title") val imageTitle: String,
     @NonNull @ColumnInfo(name = "frame_type") val frameType: String,
     @NonNull @ColumnInfo(name = "image_size") val imageSize: String,
-    @NonNull @ColumnInfo val price: Int,
+    @NonNull @ColumnInfo var price: Int,
     @NonNull @ColumnInfo(name = "amount") var amount: Int
 )
 

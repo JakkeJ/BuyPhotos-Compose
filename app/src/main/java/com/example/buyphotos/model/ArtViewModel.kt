@@ -95,11 +95,10 @@ class ArtViewModel(
     private fun updateShoppingCartData() {
         var amount = 0
         var price = 0
-        _totalNumberOfPhotos.value = 0
-        _basketTotalPrice.value = 0
+        resetViewModel()
         for (i in _dbShoppingCart.value) {
             amount += i.amount
-            price += i.price
+            price += (i.price * i.amount)
         }
         _totalNumberOfPhotos.value = amount
         _basketTotalPrice.value = price
@@ -145,20 +144,15 @@ class ArtViewModel(
                     }
                     updateShoppingCartData()
                     break
+                } else {
+                    insertShoppingCartItem(photo)
+                    break
+
                 }
-            }
-            if (foundMatchingItem) {
-                viewModelScope.launch {
-                    shoppingCartRepository.update(photo)
-                }
-                updateShoppingCartData()
-            } else {
-                insertShoppingCartItem(photo)
-                updateShoppingCartData()
             }
         } else {
             insertShoppingCartItem(photo)
-            updateShoppingCartData()
+
         }
     }
 
@@ -166,14 +160,15 @@ class ArtViewModel(
         photo.amount += 1
         viewModelScope.launch {
             shoppingCartRepository.update(photo)
-            updateShoppingCartData()
         }
+        updateShoppingCartData()
     }
 
     fun removePhotoFromDb(photo: ShoppingCart) {
         viewModelScope.launch {
             shoppingCartRepository.remove(photo)
         }
+        updateShoppingCartData()
     }
 
     fun decreasePhotoAmount(photo: ShoppingCart){
@@ -183,7 +178,9 @@ class ArtViewModel(
                 shoppingCartRepository.update(photo)
             }
             updateShoppingCartData()
-        } else {
+        } else if (photo.amount == 1){
+            photo.amount = 0
+            photo.price = 0
             removePhotoFromDb(photo)
             updateShoppingCartData()
         }
@@ -267,15 +264,15 @@ class ArtViewModel(
     private fun insertShoppingCartItem(shoppingCartItem: ShoppingCart) {
         viewModelScope.launch {
             shoppingCartRepository.insert(shoppingCartItem)
-            updateShoppingCartData()
         }
+        updateShoppingCartData()
     }
 
     fun emptyShoppingCart() {
         viewModelScope.launch {
             shoppingCartRepository.emptyShoppingCart()
         }
-        resetViewModel()
+        updateShoppingCartData()
     }
 
     suspend fun getShoppingCartItems(): List<ShoppingCart> {
