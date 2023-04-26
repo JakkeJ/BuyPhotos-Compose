@@ -92,20 +92,26 @@ class ArtViewModel(
         fetchShoppingCartItems()
     }
 
-    private fun fetchShoppingCartItems() {
-        var price = 0
+    private fun updateShoppingCartData() {
         var amount = 0
+        var price = 0
+        _totalNumberOfPhotos.value = 0
+        _basketTotalPrice.value = 0
+        for (i in _dbShoppingCart.value) {
+            amount += i.amount
+            price += i.price
+        }
+        _totalNumberOfPhotos.value = amount
+        _basketTotalPrice.value = price
+    }
+
+    private fun fetchShoppingCartItems() {
         viewModelScope.launch {
             shoppingCartRepository.allShoppingCartItems.collect { shoppingCartItems ->
                 _dbShoppingCart.value = shoppingCartItems
-                for (i in shoppingCartItems){
-                    price += i.price * i.amount
-                    amount += i.amount
-                }
-                _totalNumberOfPhotos.value = amount
-                _basketTotalPrice.value = price
             }
         }
+        updateShoppingCartData()
     }
 
     fun resetViewModel() {
@@ -134,12 +140,10 @@ class ArtViewModel(
                 ) {
                     foundMatchingItem = true
                     i.amount += 1
-                    var newNumberOfPhotos: Int = totalNumberOfPhotos.value
-                    newNumberOfPhotos += 1
-                    _totalNumberOfPhotos.value = newNumberOfPhotos
-                    var newTotalPriceAmount: Int = basketTotalPrice.value
-                    newTotalPriceAmount += photo.price
-                    _basketTotalPrice.value = newTotalPriceAmount
+                    viewModelScope.launch {
+                        shoppingCartRepository.update(photo)
+                    }
+                    updateShoppingCartData()
                     break
                 }
             }
@@ -147,18 +151,23 @@ class ArtViewModel(
                 viewModelScope.launch {
                     shoppingCartRepository.update(photo)
                 }
+                updateShoppingCartData()
             } else {
                 insertShoppingCartItem(photo)
+                updateShoppingCartData()
             }
         } else {
             insertShoppingCartItem(photo)
+            updateShoppingCartData()
         }
     }
 
     fun increasePhotoAmount(photo: ShoppingCart) {
         photo.amount += 1
-        _totalNumberOfPhotos.value += 1
-        _basketTotalPrice.value += photo.price
+        viewModelScope.launch {
+            shoppingCartRepository.update(photo)
+            updateShoppingCartData()
+        }
     }
 
     fun removePhotoFromDb(photo: ShoppingCart) {
@@ -170,12 +179,13 @@ class ArtViewModel(
     fun decreasePhotoAmount(photo: ShoppingCart){
         if (photo.amount > 1) {
             photo.amount -= 1
-            _totalNumberOfPhotos.value -= 1
-            _basketTotalPrice.value -= photo.price
+            viewModelScope.launch {
+                shoppingCartRepository.update(photo)
+            }
+            updateShoppingCartData()
         } else {
-            _totalNumberOfPhotos.value -= 1
-            _basketTotalPrice.value -= photo.price
             removePhotoFromDb(photo)
+            updateShoppingCartData()
         }
     }
 
@@ -257,8 +267,7 @@ class ArtViewModel(
     private fun insertShoppingCartItem(shoppingCartItem: ShoppingCart) {
         viewModelScope.launch {
             shoppingCartRepository.insert(shoppingCartItem)
-            _totalNumberOfPhotos.value += shoppingCartItem.amount
-            _basketTotalPrice.value = basketTotalPrice.value + (shoppingCartItem.price * shoppingCartItem.amount)
+            updateShoppingCartData()
         }
     }
 

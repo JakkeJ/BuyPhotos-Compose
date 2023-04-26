@@ -38,6 +38,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonDisposableHandle.parent
 import kotlinx.coroutines.launch
 
+
 @Composable
 fun ShoppingCartScreen(viewModel: ArtViewModel, navController: NavController) {
     Column(
@@ -76,7 +77,7 @@ fun ShoppingCartScreen(viewModel: ArtViewModel, navController: NavController) {
             Button(
                 onClick = { viewModel.emptyShoppingCart() },
             ) {
-                Text(text = "TØM HANDLEKURV")
+                Text(text = "FUCK YOU")
             }
             Spacer(modifier = Modifier.width(16.dp))
             val scope = rememberCoroutineScope()
