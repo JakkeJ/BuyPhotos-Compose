@@ -153,7 +153,7 @@ fun ShoppingCartList(navController: NavController, viewModel: ArtViewModel, modi
                     val color by animateColorAsState(
                         when (dismissState.targetValue) {
                             DismissValue.Default -> MaterialTheme.colorScheme.background
-                            else -> Color(100,0,0)
+                            else -> MaterialTheme.colorScheme.error
                         }
                     )
                     val alignment = Alignment.CenterStart
