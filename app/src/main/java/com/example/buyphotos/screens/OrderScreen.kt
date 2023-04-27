@@ -105,7 +105,7 @@ fun CustomTextField(onNumberOfPhotosChanged: (Int) -> Unit) {
             text = it
             onNumberOfPhotosChanged(it.toIntOrNull() ?: 1)
                         },
-        label = { Text("Antall") },
+        label = { Text(stringResource(R.string.amount)) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
         modifier = Modifier

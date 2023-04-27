@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Kjøp bilder</string>
     <string name="frametype">Rammetype:</string>
@@ -24,7 +25,7 @@
     <string name="orderHeader">"Din bestilling:  "</string>
     <string name="orderSubject">Bildebestilling</string>
     <string name="orderInfo">"Bildenavn: %s Bilde-ID: %s Bildestørrelse: %s Bilderamme: %s Pris: %s,-  Antall: %s Subtotal: %s,-  "</string>
-    <string name="orderEnd">Antall bilder: %s\nTotal pris: %s,-\nTakk for at du støtter lokale bedrifter.</string>
+    <string name="orderEnd">Antall bilder: %s\\nTotal pris: %s,-\\nTakk for at du støtter lokale bedrifter.</string>
     <string name="emptyShoppingCart">Tøm handlekurv</string>
     <string name="accept">Ja</string>
     <string name="decline">Nei</string>

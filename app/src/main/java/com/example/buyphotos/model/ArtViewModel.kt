@@ -85,8 +85,8 @@ class ArtViewModel(
     private val _basketTotalPrice = MutableStateFlow(0)
     val basketTotalPrice: StateFlow<Int> = _basketTotalPrice
 
-    private val _screenTitle = MutableLiveData("")
-    val screenTitle: LiveData<String> = _screenTitle
+    private val _screenTitle = MutableStateFlow("")
+    val screenTitle: StateFlow<String> = _screenTitle
 
     var updateCount by mutableStateOf(0)
 
@@ -135,7 +135,7 @@ class ArtViewModel(
         val gold = Color(225,185,0)
         val silver = Color(100,100,100)
         return when (frame) {
-            "Treramme" -> brown
+            "Treramme"-> brown
             "Sølvramme" -> silver
             "Gullramme" -> gold
             else -> Color.Black
