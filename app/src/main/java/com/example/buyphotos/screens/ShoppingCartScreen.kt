@@ -2,84 +2,100 @@ package com.example.buyphotos.screens
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.*
+import androidx.compose.material3.DismissDirection
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.ConstraintSet
 import androidx.constraintlayout.compose.Dimension
 import androidx.constraintlayout.compose.layoutId
-import androidx.core.content.ContextCompat.startActivity
 import androidx.navigation.NavController
+import androidx.tv.material3.ClickableSurfaceDefaults.color
 import coil.compose.rememberAsyncImagePainter
-import com.example.buyphotos.MainActivity
 import com.example.buyphotos.R
 import com.example.buyphotos.database.ShoppingCart
-import com.example.buyphotos.model.ArtPhotoApiStatus
 import com.example.buyphotos.model.ArtViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonDisposableHandle.parent
 import kotlinx.coroutines.launch
 
 
 @Composable
 fun ShoppingCartScreen(viewModel: ArtViewModel, navController: NavController) {
+    LaunchedEffect(viewModel.updateCount) {
+        viewModel.updateShoppingCartData()
+    }
+    val title = stringResource(R.string.shoppingCartTitle)
+    LaunchedEffect(Unit){
+        viewModel.setTitle(title)
+    }
+    val totalAmount = viewModel.totalNumberOfPhotos.collectAsState().value
+    val totalSum = viewModel.basketTotalPrice.collectAsState().value
     Column(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        Text(
-            text = "Handlekurv",
-            modifier = Modifier
-                .padding(8.dp)
-        )
         ShoppingCartList(
             navController = navController,
             viewModel = viewModel,
             modifier = Modifier
+                .fillMaxHeight()
                 .weight(1f)
         )
+        Spacer(modifier = Modifier.weight(1f))
         Row(
             modifier = Modifier
-                .padding(8.dp)
-                .align(Alignment.CenterHorizontally)
+                .fillMaxWidth()
+                .align(Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.SpaceEvenly
         ){
             Text(
-                text = "Antall valgte bilder: ${viewModel.totalNumberOfPhotos.collectAsState().value}"
+                text = "Antall valgte bilder: $totalAmount"
             )
-            Spacer(modifier = Modifier.width(16.dp))
             Text(
-                text = "Totalpris: ${viewModel.basketTotalPrice.collectAsState().value},-"
+                text = "Totalpris: $totalSum,-"
             )
         }
         Row(
             modifier = Modifier
-                .padding(8.dp)
-                .align(Alignment.CenterHorizontally)
+                .fillMaxWidth()
+                .align(Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.SpaceEvenly
+
         ) {
             Button(
-                onClick = { viewModel.emptyShoppingCart() },
+                onClick = {
+                    viewModel.emptyShoppingCart()
+                    viewModel.updateCount++
+                          },
             ) {
-                Text(text = "FUCK YOU")
+                Text(text = "TØM HANDLEKURV")
             }
-            Spacer(modifier = Modifier.width(16.dp))
             val scope = rememberCoroutineScope()
             val context = LocalContext.current
             val orderHeader = stringResource(id = R.string.orderHeader)
@@ -100,27 +116,84 @@ fun ShoppingCartScreen(viewModel: ArtViewModel, navController: NavController) {
                             orderPrice = (viewModel.basketTotalPrice.value).toString(),
                             orderSize = viewModel.totalNumberOfPhotos.value.toString()
                         )
-
                     }
+                    viewModel.emptyShoppingCart()
                 },
             ) {
                 Text(text = "SEND BESTILLING")
             }
         }
+        Spacer(modifier = Modifier.size(4.dp))
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShoppingCartList(navController: NavController, viewModel: ArtViewModel, modifier: Modifier) {
     val artPhotos = viewModel.dbShoppingCart.collectAsState(initial = emptyList())
+    LaunchedEffect(viewModel.updateCount) {
+        viewModel.updateShoppingCartData()
+    }
     LazyColumn(
-        contentPadding = PaddingValues(0.dp),
-        modifier = modifier
+        contentPadding = PaddingValues(
+            8.dp
+        )
     ) {
-        items(count = artPhotos.value.size) { index ->
-            val artPhoto = artPhotos.value[index]
-            ShoppingCartPhotoCard(artPhoto = artPhoto, viewModel = viewModel)
-            Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.padding(4.dp))
+        items(artPhotos.value, key = { item: ShoppingCart -> item.id }) { artPhoto ->
+            val dismissState = rememberDismissState()
+            if (dismissState.isDismissed(DismissDirection.StartToEnd)) {
+                viewModel.removePhotoFromDb(artPhoto)
+            }
+            SwipeToDismiss(
+                state = dismissState,
+                directions = setOf(
+                    DismissDirection.StartToEnd
+                ),
+                background = {
+                    val color by animateColorAsState(
+                        when (dismissState.targetValue) {
+                            DismissValue.Default -> MaterialTheme.colorScheme.background
+                            else -> Color(100,0,0)
+                        }
+                    )
+                    val alignment = Alignment.CenterStart
+                    val icon = Icons.Default.Delete
+
+                    val scale by animateFloatAsState(
+                        if (dismissState.targetValue == DismissValue.Default) 0.75f else 1f
+                    )
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(color, shape = MaterialTheme.shapes.small)
+                            .padding(horizontal = Dp(20f)),
+                        contentAlignment = alignment
+                    ) {
+                        Icon(
+                            icon,
+                            contentDescription = "Delete Icon",
+                            modifier = Modifier
+                                .scale(scale),
+                            tint = Color.White
+                        )
+                    }
+                },
+                dismissContent = {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(alignment = Alignment.CenterVertically),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        ),
+                        shape = MaterialTheme.shapes.small,
+                        elevation = CardDefaults.cardElevation()
+                    ) {
+                        ShoppingCartPhotoCard(artPhoto = artPhoto, viewModel = viewModel)
+                    }
+                }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
@@ -129,6 +202,7 @@ fun ShoppingCartList(navController: NavController, viewModel: ArtViewModel, modi
 fun ShoppingCartPhotoCard(artPhoto: ShoppingCart, viewModel: ArtViewModel) {
     var subtotal by remember { mutableStateOf(artPhoto.amount * artPhoto.price) }
     var amount by remember { mutableStateOf(artPhoto.amount) }
+
     val constraints = ConstraintSet {
         val photoComposable = createRefFor("photo_composable")
         val titleComposable = createRefFor("title_composable")
@@ -185,10 +259,11 @@ fun ShoppingCartPhotoCard(artPhoto: ShoppingCart, viewModel: ArtViewModel) {
             bottom.linkTo(parent.bottom, 0.dp)
         }
     }
+
     Box(
         modifier = Modifier
-            .padding(0.dp)
-            .height(90.dp)
+            .padding(4.dp)
+            .height(120.dp)
     ) {
         ConstraintLayout(
             constraints,
@@ -203,28 +278,21 @@ fun ShoppingCartPhotoCard(artPhoto: ShoppingCart, viewModel: ArtViewModel) {
                 modifier = Modifier
                     .layoutId("photo_composable")
                     .aspectRatio(1f)
+                    .clip(shape = MaterialTheme.shapes.small)
                     .border(
-                        width = 1.dp,
-                        color = Color.Black,
-                    )
-                    .padding(1.dp)
-                    .border(
-                        3.dp,
-                        viewModel.getBorderColor(artPhoto.frameType)
-                    )
-                    .padding(3.dp)
-                    .border(
-                        width = 1.dp,
-                        color = Color.Black,
+                        4.dp,
+                        viewModel.getBorderColor(artPhoto.frameType),
+                        shape = MaterialTheme.shapes.small
                     )
             )
-            Row(modifier = Modifier
+            Column(modifier = Modifier
                 .layoutId("title_composable"),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.Start
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement =  Arrangement.Top
             ){
                 Text(
                     text = artPhoto.imageTitle,
+                    lineHeight = 16.sp,
                     fontSize = 12.sp
                 )
             }
@@ -246,14 +314,17 @@ fun ShoppingCartPhotoCard(artPhoto: ShoppingCart, viewModel: ArtViewModel) {
                     subtotal = artPhoto.amount * artPhoto.price
                     amount = artPhoto.amount
                           },
+                contentPadding = PaddingValues(
+                    0.dp
+                ),
                 modifier = Modifier
                     .layoutId("remove_image_button_composable")
                     .height(50.dp)
                     .width(50.dp)
                 ) {
-                    Text(
-                        text = "-",
-                        fontSize = 24.sp
+                    Icon(
+                        Icons.Filled.Remove,
+                        ""
                     )
                 }
             Text(
@@ -270,14 +341,17 @@ fun ShoppingCartPhotoCard(artPhoto: ShoppingCart, viewModel: ArtViewModel) {
                     subtotal = artPhoto.amount * artPhoto.price
                     amount = artPhoto.amount
                           },
+                contentPadding = PaddingValues(
+                    0.dp
+                ),
                 modifier = Modifier
                     .layoutId("add_image_button_composable")
                     .height(50.dp)
                     .width(50.dp)
             ) {
-                Text(
-                    text = "+",
-                    fontSize = 24.sp
+                Icon(
+                    Icons.Filled.Add,
+                    ""
                 )
             }
             Text(

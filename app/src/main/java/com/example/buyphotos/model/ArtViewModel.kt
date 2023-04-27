@@ -3,7 +3,7 @@ package com.example.buyphotos.model
 import android.content.Intent
 import androidx.lifecycle.LiveData
 import android.text.Editable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
 import androidx.lifecycle.*
 import com.example.buyphotos.repository.ShoppingCartRepository
 import com.example.buyphotos.database.ShoppingCart
@@ -12,10 +12,10 @@ import com.example.buyphotos.network.ArtArtist
 import com.example.buyphotos.network.ArtPhoto
 import com.example.buyphotos.repository.ArtPhotoRepository
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat.startActivity
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.buyphotos.MainActivity
 import com.example.buyphotos.R
 import com.example.buyphotos.network.FramedPhoto
@@ -43,17 +43,17 @@ class ArtViewModel(
     private val _dbShoppingCart = MutableStateFlow<List<ShoppingCart>>(emptyList())
     val dbShoppingCart: StateFlow<List<ShoppingCart>> = _dbShoppingCart
 
-    private val _status = MutableLiveData<ArtPhotoApiStatus>()
-    val status: LiveData<ArtPhotoApiStatus> = _status
+    private val _status = MutableStateFlow<ArtPhotoApiStatus?>(null)
+    val status: StateFlow<ArtPhotoApiStatus?> = _status
 
-    private val _photos = MutableLiveData<List<ArtPhoto>>()
-    val photos: LiveData<List<ArtPhoto>> = _photos
+    private val _photos = MutableStateFlow<List<ArtPhoto>>(emptyList())
+    val photos: StateFlow<List<ArtPhoto>> = _photos
 
-    private val _artists = MutableLiveData<List<ArtArtist>>()
-    val artists: LiveData<List<ArtArtist>> = _artists
+    private val _artists = MutableStateFlow<List<ArtArtist>>(emptyList())
+    val artists: StateFlow<List<ArtArtist>> = _artists
 
-    private val _albums = MutableLiveData<List<ArtAlbum>>()
-    val albums: LiveData<List<ArtAlbum>> = _albums
+    private val _albums = MutableStateFlow<List<ArtAlbum>>(emptyList())
+    val albums: StateFlow<List<ArtAlbum>> = _albums
 
     private val _frame = MutableStateFlow("Treramme")
     val frame: StateFlow<String> = _frame
@@ -67,8 +67,8 @@ class ArtViewModel(
     private val _orderPrice = MutableStateFlow<String>("")
     val orderPrice: StateFlow<String> = _orderPrice
 
-    private val _picture = MutableLiveData<ArtPhoto>()
-    val picture: LiveData<ArtPhoto> = _picture
+    private val _picture = MutableStateFlow<ArtPhoto?>(null)
+    val picture: StateFlow<ArtPhoto?> = _picture
 
     private val _totalNumberOfPhotos = MutableStateFlow<Int>(0)
     val totalNumberOfPhotos: StateFlow<Int> = _totalNumberOfPhotos
@@ -85,23 +85,34 @@ class ArtViewModel(
     private val _basketTotalPrice = MutableStateFlow(0)
     val basketTotalPrice: StateFlow<Int> = _basketTotalPrice
 
+    private val _screenTitle = MutableLiveData("")
+    val screenTitle: LiveData<String> = _screenTitle
+
+    var updateCount by mutableStateOf(0)
+
     init{
         getArtContent()
         setFrameAndImageSizeOptions()
         resetViewModel()
         fetchShoppingCartItems()
+        updateShoppingCartData()
     }
 
-    private fun updateShoppingCartData() {
+    fun setTitle(newTitle: String) {
+        _screenTitle.value = newTitle
+    }
+
+    fun updateShoppingCartData() {
+        resetViewModel()
         var amount = 0
         var price = 0
-        resetViewModel()
-        for (i in _dbShoppingCart.value) {
+        for (i in dbShoppingCart.value) {
             amount += i.amount
             price += (i.price * i.amount)
         }
         _totalNumberOfPhotos.value = amount
         _basketTotalPrice.value = price
+        updateCount++
     }
 
     private fun fetchShoppingCartItems() {
@@ -116,43 +127,55 @@ class ArtViewModel(
     fun resetViewModel() {
         _basketTotalPrice.value = 0
         _totalNumberOfPhotos.value = 0
+        updateCount++
     }
 
     fun getBorderColor(frame: String?): Color {
         val brown = Color(150, 75, 0)
+        val gold = Color(225,185,0)
+        val silver = Color(100,100,100)
         return when (frame) {
             "Treramme" -> brown
-            "Sølvramme" -> Color.Gray
-            "Gullramme" -> Color.Yellow
+            "Sølvramme" -> silver
+            "Gullramme" -> gold
             else -> Color.Black
         }
     }
 
     fun addToBasket(photo: ShoppingCart) {
-        if (dbShoppingCart.value.isNotEmpty()) {
+        if (dbShoppingCart.value!!.isNotEmpty()) {
             var foundMatchingItem = false
-            for (i in dbShoppingCart.value) {
+            for (i in dbShoppingCart.value!!) {
                 if (
                     i.imageId == photo.imageId &&
                     i.frameType == photo.frameType &&
                     i.imageSize == photo.imageSize
                 ) {
                     foundMatchingItem = true
-                    i.amount += 1
+                    val currentPhoto = i.copy()
+                    if (photo.amount > 1){
+                        currentPhoto.amount += photo.amount
+                    } else {
+                        currentPhoto.amount += 1
+                    }
+                    var newNumberOfPhotos: Int = totalNumberOfPhotos.value!!
+                    newNumberOfPhotos += 1
+                    _totalNumberOfPhotos.value = newNumberOfPhotos
+                    var newTotalPriceAmount: Int = basketTotalPrice.value!!
+                    newTotalPriceAmount += photo.price
+                    _basketTotalPrice.value = newTotalPriceAmount
                     viewModelScope.launch {
-                        shoppingCartRepository.update(photo)
+                        shoppingCartRepository.update(currentPhoto)
                     }
                     updateShoppingCartData()
                     break
-                } else {
-                    insertShoppingCartItem(photo)
-                    break
-
                 }
+            }
+            if (!foundMatchingItem) {
+                insertShoppingCartItem(photo)
             }
         } else {
             insertShoppingCartItem(photo)
-
         }
     }
 
@@ -160,15 +183,16 @@ class ArtViewModel(
         photo.amount += 1
         viewModelScope.launch {
             shoppingCartRepository.update(photo)
+            updateShoppingCartData()
         }
-        updateShoppingCartData()
+
     }
 
     fun removePhotoFromDb(photo: ShoppingCart) {
         viewModelScope.launch {
             shoppingCartRepository.remove(photo)
+            updateShoppingCartData()
         }
-        updateShoppingCartData()
     }
 
     fun decreasePhotoAmount(photo: ShoppingCart){
@@ -176,13 +200,12 @@ class ArtViewModel(
             photo.amount -= 1
             viewModelScope.launch {
                 shoppingCartRepository.update(photo)
+                updateShoppingCartData()
             }
-            updateShoppingCartData()
         } else if (photo.amount == 1){
             photo.amount = 0
             photo.price = 0
             removePhotoFromDb(photo)
-            updateShoppingCartData()
         }
     }
 
@@ -225,7 +248,7 @@ class ArtViewModel(
         }
 
         _price.value = BASE_IMAGE_PRICE + framePrice + imageSizePrice
-        _orderPrice.value = (price.value.toInt() * numberOfPhotos.value.toInt()).toString()
+        _orderPrice.value = (price.value * numberOfPhotos.value).toString()
     }
 
     fun setFrameAndImageSizeOptions() {
@@ -248,15 +271,17 @@ class ArtViewModel(
 
     fun findArtistId(id: Int) {
         val index = id -1
-        val artistId = albums.value!!.get(index).userId
-        val id = artistId.toInt()
-        findArtistInfo(id)
+        if (albums.value.isNotEmpty()) {
+            val artistId = albums.value[index].userId
+            val id = artistId.toInt()
+            findArtistInfo(id)
+        }
     }
 
     fun findArtistInfo(id: Int){
         val index = id -1
-        val artistName: String = artists.value!!.get(index).name
-        val artistEmail: String = artists.value!!.get(index).email
+        val artistName: String = artists.value[index].name
+        val artistEmail: String = artists.value[index].email
         _artistName.value = artistName
         _artistEmail.value = artistEmail
     }

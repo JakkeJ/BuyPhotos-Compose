@@ -1,10 +1,11 @@
 package com.example.buyphotos
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
@@ -21,8 +22,11 @@ import com.example.buyphotos.navigation.BottomNavGraph
 @Composable
 fun MainScreen(viewModel: ArtViewModel) {
     val navController = rememberNavController()
+    val title: String by viewModel.screenTitle.observeAsState("")
     Scaffold(
-        topBar = { topAppBar() },
+        topBar = {
+            topAppBar(title)
+        } ,
         bottomBar = { BottomBar(navController = navController) }
     )
     { innerPadding ->
@@ -32,12 +36,15 @@ fun MainScreen(viewModel: ArtViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun topAppBar() {
+fun topAppBar(title: String) {
     TopAppBar(
         title = {
-            Text(text = "Bestill bilder")
-        }
+            Text(text = title)
+        },
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.onSurface)
     )
 }
 
@@ -51,7 +58,7 @@ fun BottomBar(navController: NavHostController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    BottomNavigation {
+    NavigationBar {
         screens.forEach { screen ->
             AddItem(
                 screen = screen,
@@ -68,7 +75,7 @@ fun RowScope.AddItem(
     currentDestination: NavDestination?,
     navController: NavHostController
 ) {
-    BottomNavigationItem(
+    NavigationBarItem(
         icon = {
             Icon(
                 imageVector = screen.icon,
@@ -80,7 +87,6 @@ fun RowScope.AddItem(
         selected = currentDestination?.hierarchy?.any {
             it.route == screen.route
         } == true,
-        unselectedContentColor = LocalContentColor.current.copy(alpha = ContentAlpha.disabled),
         onClick = {
             navController.navigate(screen.route) {
                 popUpTo(navController.graph.findStartDestination().id)

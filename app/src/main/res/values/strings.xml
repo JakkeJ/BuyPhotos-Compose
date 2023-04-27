@@ -34,4 +34,7 @@
     <string name="emptyShoppingCart">Tøm handlekurv</string>
     <string name="accept">Ja</string>
     <string name="decline">Nei</string>
+    <string name="orderTitle">Bildevalg</string>
+    <string name="browseTitle">Velg bilde</string>
+    <string name="shoppingCartTitle">Handlekurv</string>
 </resources>

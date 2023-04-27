@@ -22,8 +22,8 @@ sealed class BottomBarScreen(
     )
 
     object Order : BottomBarScreen(
-        route = "order",
+        route = "browse",
         title = "Order",
-        icon = Icons.Default.List,
+        icon = Icons.Default.List
     )
 }

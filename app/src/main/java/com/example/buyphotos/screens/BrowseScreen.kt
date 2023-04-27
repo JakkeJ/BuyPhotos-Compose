@@ -4,16 +4,20 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material.Card
-import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
+import coil.compose.rememberImagePainter
+import coil.request.ImageRequest
+import com.example.buyphotos.R
 import com.example.buyphotos.components.ArtPhotoApiStatusView
-import com.example.buyphotos.database.ShoppingCart
 import com.example.buyphotos.model.ArtPhotoApiStatus
 import com.example.buyphotos.model.ArtViewModel
 import com.example.buyphotos.navigation.BottomBarScreen
@@ -21,19 +25,28 @@ import com.example.buyphotos.network.ArtPhoto
 import com.example.buyphotos.network.ArtPhotoApi
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArtPhotoCard(artPhoto: ArtPhoto, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .padding(4.dp)
             .fillMaxWidth(),
-        elevation = 4.dp,
         onClick = onClick
     ) {
         Column {
+            val painter = rememberAsyncImagePainter(
+                ImageRequest.Builder(LocalContext.current)
+                    .data(data = artPhoto.url)
+                    .apply(block = fun ImageRequest.Builder
+                            .() {
+                        crossfade(true)
+                        placeholder(R.drawable.loading_animation)
+                        error(R.drawable.ic_broken_image)
+                            }).build()
+            )
             Image(
-                painter = rememberAsyncImagePainter(artPhoto.url),
+                painter = painter,
                 contentDescription = "Art Photo",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -46,6 +59,10 @@ fun ArtPhotoCard(artPhoto: ArtPhoto, onClick: () -> Unit) {
 
 @Composable
 fun BrowseScreen(viewModel: ArtViewModel, navController: NavHostController) {
+    val title = stringResource(R.string.browseTitle)
+    LaunchedEffect(Unit){
+        viewModel.setTitle(title)
+    }
     val artPhotos = remember { mutableStateOf(emptyList<ArtPhoto>()) }
     val apiStatus = remember { mutableStateOf(ArtPhotoApiStatus.LOADING) }
     val coroutineScope = rememberCoroutineScope()
@@ -63,11 +80,7 @@ fun BrowseScreen(viewModel: ArtViewModel, navController: NavHostController) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Display your ArtPhotoGrid with the fetched ArtPhoto objects
         ArtPhotoGrid(artPhotos = artPhotos.value, navController, viewModel)
-
-        // Display the appropriate animation or image based on the current ArtPhotoApiStatus
-        ArtPhotoApiStatusView(status = apiStatus.value)
     }
 }
 
